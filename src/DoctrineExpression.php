@@ -28,6 +28,16 @@ class DoctrineExpression
     }
 
     /**
+     * Get the entity manager instance
+     *
+     * @return EntityManagerInterface
+     */
+    public function getEntityManager(): EntityManagerInterface
+    {
+        return $this->entityManager;
+    }
+
+    /**
      * Define query or expression logic for different drivers.
      *
      * @param DriverEnum $driver The enum of the database driver
@@ -43,6 +53,21 @@ class DoctrineExpression
     }
 
     /**
+     * Get the result of the query defined for a specific driver
+     *
+     * @param DriverEnum $driver
+     * @return mixed
+     */
+    public function getDefinedQuery(DriverEnum $driver): mixed
+    {
+        $callback = $this->queries[$driver->value] ?? null;
+
+        return is_callable($callback)
+            ? call_user_func($callback, $this->entityManager, $this)
+            : null;
+    }
+
+    /**
      * Executes and returns the result of the query compatible with the current driver.
      *
      * @return mixed The result of the query
@@ -55,13 +80,20 @@ class DoctrineExpression
 
         foreach ($this->queries as $platformFqcn => $callback) {
             if (is_a($connection->getDatabasePlatform(), $platformFqcn)) {
-                return call_user_func($callback, $this->entityManager);
+                $driverEnum = $this->getDriverEnumByPlatformFqcn($platformFqcn);
+
+                return $this->getDefinedQuery($driverEnum);
             }
         }
 
         return null;
     }
 
+    /**
+     * Returns an enumerator representing the driver that doctrine is currently using
+     *
+     * @return DriverEnum|null
+     */
     public function getDriverEnum(): ?DriverEnum
     {
         $platform = $this->entityManager->getConnection()->getDatabasePlatform();
@@ -73,5 +105,29 @@ class DoctrineExpression
         }
 
         return null;
+    }
+
+    /**
+     * Returns an enumerator designated to the platform passed as argument
+     *
+     * @param string $platformFqcn  A valid database platform (FQCN) defined by doctrine which is a subclass of AbstractPlatform
+     *
+     * @return DriverEnum
+     *
+     * @throws \InvalidArgumentException If the database platform does not exist
+     *
+     * @see \Doctrine\DBAL\Platforms\AbstractPlatform
+     *
+     * @internal
+     */
+    protected function getDriverEnumByPlatformFqcn(string $platformFqcn): DriverEnum
+    {
+        foreach (DriverEnum::cases() as $driver) {
+            if (is_a($platformFqcn, $driver->value, true)) {
+                return $driver;
+            }
+        }
+
+        throw new \InvalidArgumentException(sprintf('Unrecognized doctrine platform "%s"', $platformFqcn));
     }
 }

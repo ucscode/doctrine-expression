@@ -1,0 +1,13 @@
+name: Continous Integration Analysis
+run-name: Doctrine Expression Test
+on: [push]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out to master branch
+        uses: actions/checkout@v4
+        with:
+            ref: master
+      - name: Test Code Logic
+        run: composer test

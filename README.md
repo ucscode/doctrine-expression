@@ -92,37 +92,104 @@ $expression = new DoctrineExpression($entityManager);
 
 // Define the MySQL query
 $expression->defineQuery(DriverEnum::PDO_MYSQL, function($entityManager) {
-    $queryBuilder = $entityManager->createQueryBuilder();
-
-    return $queryBuilder->select('u')
+    return $entityManager->createQueryBuilder()
+        ->select('u')
         ->from('App\Entity\User', 'u')
-        ->where('JSON_CONTAINS(u.roles, :roles) = 1')
-        ->setParameter('roles', json_encode('ROLE_USER'))
-        ->getQuery()
-        ->getResult();
+        ->where('JSON_CONTAINS(u.roles, :roles) = 1');
 });
 
 // Define the PostgreSQL query
 $expression->defineQuery(DriverEnum::PDO_PGSQL, function($entityManager) {
-    $queryBuilder = $entityManager->createQueryBuilder();
-
-    return $queryBuilder->select('u')
+    return $entityManager->createQueryBuilder();
+        ->select('u')
         ->from('App\Entity\User', 'u')
-        ->where('u.roles @> :role')
-        ->setParameter('role', json_encode(['ROLE_USER']))
-        ->getQuery()
-        ->getResult();
+        ->where('u.roles @> :roles');
 });
 
-// Execute the compatible query based on the current database platform
-$result = $expression->getCompatibleResult();
+// Fetch the compatible query builder based on the current database platform
+$result = $expression->getCompatibleResult()
+    ->setParameter('roles', json_encode(['ROLE_USER']))
+    ->getQuery()
+    ->getResult();
 ```
 
 The `getCompatibleResult()` method checks which platform is active (e.g., MySQL or PostgreSQL) and selects the corresponding query that was previously defined using `defineQuery()`.
 
+
+#### @ V1.1
+
+For drivers that might use the same syntax, the `getDefinedQuery()` can be used to eliminate the need to write repetitive patterns. 
+
+```php
+$expression->defineQuery(DriverEnum::PDO_SQLITE, function($em, $self) {
+    return $self->getDefinedQuery(DriverEnum::PDO_MYSQL);
+})
+```
+
 ### Conclusion
 
 By using `DoctrineExpression`, you can maintain a clean and consistent codebase while easily adapting to changes in database platforms. This library not only saves time but also enhances collaboration among developers familiar with different SQL dialects.
+
+----
+
+### Helpful Snippet for Common Use Case
+
+> How to find users by one or more roles in Symfony using `DoctrineExpression`
+
+```php
+class UserRepository ... {
+    ...
+    public function findUsersByRoles(string|array $roles): array
+    {
+        // Ensure that $roles is an array containing unique values
+        $roles = array_unique(array_values(is_array($roles) ? $roles : [$roles]));
+
+        // Create an doctrine expression instance
+        $expression = new DoctrineExpression($this->getEntityManager());
+
+        // When using MySQL
+        $expression->defineQuery(DriverEnum::PDO_MYSQL, function () use ($roles): array {
+            $condition = implode(' OR ', array_map(function (int $key, string $value) {
+                return sprintf('entity.roles LIKE :%s%d', $value, $key);
+            }, array_keys($roles), $roles));
+
+            $builder = $this->createQueryBuilder('entity')->where($condition);
+
+            foreach ($roles as $key => $role) {
+                $builder->setParameter(sprintf('%s%d', $role, $key), str_replace(':role', $role, '%":role"%'));
+            }
+
+            return $builder->getQuery()->getResult();
+        });
+
+        // When using PostgreSQL
+        $expression->defineQuery(DriverEnum::PDO_PGSQL, function () use ($roles): array {
+            // Get the table name from the entity's metadata (no hard coding)
+            $tableName = $this->getEntityManager()->getClassMetadata(User::class)->getTableName();
+
+            $sql = <<<SQL
+                SELECT "$tableName".id
+                FROM "$tableName"
+                WHERE %s
+            SQL;
+
+            $condition = implode(' OR ', array_map(function(string $value) use ($tableName) {
+                return sprintf('"%s".roles::jsonb @> \'%s\'::jsonb', $tableName, json_encode([$value]));
+            }, $roles));
+            
+            $nativeSQL = sprintf($sql, $condition);
+            $result = $this->getEntityManager()->getConnection()->executeQuery($nativeSQL);
+
+            return $this->findBy(['id' => array_map(fn (array $user) => $user['id'], $result->fetchAllAssociative())]);
+        });
+
+        return $expression->getCompatibleResult();
+    }
+
+}
+```
+
+---
 
 ## License
 
