@@ -1,5 +1,7 @@
 # DoctrineExpression
 
+<img src="./assets/design.webp" width="300"/>
+
 `DoctrineExpression` is a PHP library designed to facilitate cross-database compatibility when constructing SQL queries using Doctrine ORM. By abstracting database-specific syntax, developers can write more maintainable code that seamlessly adapts to different database drivers.
 
 ## Table of Contents
