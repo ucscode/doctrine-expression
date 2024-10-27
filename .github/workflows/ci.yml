@@ -9,5 +9,8 @@ jobs:
         uses: actions/checkout@v4
         with:
             ref: master
+            token: ${{ secrets.GITHUB_TOKEN || 'my_dummy_token' }}
+      - name: Install doctrine dependencies
+        run: composer install
       - name: Test Code Logic
         run: composer test
