@@ -36,6 +36,8 @@ class DoctrineExpressionTest extends TestCase
         $this->configureDoctrineExpression($expressionSqlite);
 
         $this->assertSame(DriverEnum::PDO_SQLITE, $expressionSqlite->getCompatibleResult());
+
+        $this->assertTrue($expressionMysql->getDriverEnum() === DriverEnum::PDO_MYSQL);
     }
 
     /**

@@ -19,8 +19,8 @@
     },
     "scripts": {
         "test": "phpunit tests/",
-        "cs-fix": "php-cs-fixer fix",
-        "cs-check": "php-cs-fixer fix --dry-run"
+        "cs-fix": "php-cs-fixer fix src/",
+        "cs-check": "php-cs-fixer fix src/ --dry-run"
     },
     "minimum-stability": "stable",
     "prefer-stable": true

@@ -7,15 +7,15 @@ use Doctrine\DBAL\Exception;
 
 /**
  * The DoctrineExpression class provides an abstraction layer for executing driver-specific queries
- * within a Doctrine ORM setup. 
- * 
- * This allows for defining multiple query expressions tailored to different database 
- * drivers (e.g., MySQL, PostgreSQL, SQLite) and dynamically selecting and executing 
+ * within a Doctrine ORM setup.
+ *
+ * This allows for defining multiple query expressions tailored to different database
+ * drivers (e.g., MySQL, PostgreSQL, SQLite) and dynamically selecting and executing
  * the appropriate one based on the active database connection.
- * 
- * This class is particularly useful in applications where database engines might change, or where 
+ *
+ * This class is particularly useful in applications where database engines might change, or where
  * cross-database compatibility is necessary, avoiding SQL errors by selecting syntax-specific queries.
- * 
+ *
  * @author Uchenna Ajah (Ucscode) <uche23mail@gmail.com>
  */
 class DoctrineExpression
@@ -32,7 +32,7 @@ class DoctrineExpression
      *
      * @param DriverEnum $driver The enum of the database driver
      * @param callable $callback The callback to execute for the driver (e.g., complex query logic)
-     * 
+     *
      * @return static
      */
     public function defineQuery(DriverEnum $driver, callable $callback): static
