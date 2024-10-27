@@ -1,0 +1,27 @@
+{
+    "name": "ucscode/doctrine-expression",
+    "description": "A PHP class for handling SQL queries across different database platforms using Doctrine.",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Ucscode\\DoctrineExpression\\": "src/",
+            "Ucscode\\Tests\\DoctrineExpression\\": "tests/"
+        }
+    },
+    "require": {
+        "doctrine/orm": "^3.2",
+        "doctrine/dbal": "^3"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5",        
+        "friendsofphp/php-cs-fixer": "^3.0"
+    },
+    "scripts": {
+        "test": "phpunit",
+        "cs-fix": "php-cs-fixer fix",
+        "cs-check": "php-cs-fixer fix --dry-run"
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
+}
