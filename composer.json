@@ -22,6 +22,6 @@
         "cs-fix": "php-cs-fixer fix src/",
         "cs-check": "php-cs-fixer fix src/ --dry-run"
     },
-    "minimum-stability": "stable",
+    "minimum-stability": "dev",
     "prefer-stable": true
 }
