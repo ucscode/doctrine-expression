@@ -137,55 +137,84 @@ By using `DoctrineExpression`, you can maintain a clean and consistent codebase 
 > How to find users by one or more roles in Symfony using `DoctrineExpression`
 
 ```php
-class UserRepository ... {
-    ...
-    public function findUsersByRoles(string|array $roles): array
+class UserRepository extends ServiceEntityRepository
+{   
+    /**
+     * Find all users matching any of the provided role(s)
+     *
+     * @param string|array $roles
+     * @return array
+     */
+    public function findByRoles(string|array $roles): array
     {
-        // Ensure that $roles is an array containing unique values
         $roles = array_unique(array_values(is_array($roles) ? $roles : [$roles]));
 
-        // Create an doctrine expression instance
-        $expression = new DoctrineExpression($this->getEntityManager());
-
-        // When using MySQL
-        $expression->defineQuery(DriverEnum::PDO_MYSQL, function () use ($roles): array {
-            $condition = implode(' OR ', array_map(function (int $key, string $value) {
-                return sprintf('entity.roles LIKE :%s%d', $value, $key);
-            }, array_keys($roles), $roles));
-
-            $builder = $this->createQueryBuilder('entity')->where($condition);
-
-            foreach ($roles as $key => $role) {
-                $builder->setParameter(sprintf('%s%d', $role, $key), str_replace(':role', $role, '%":role"%'));
-            }
-
-            return $builder->getQuery()->getResult();
-        });
-
-        // When using PostgreSQL
-        $expression->defineQuery(DriverEnum::PDO_PGSQL, function () use ($roles): array {
-            // Get the table name from the entity's metadata (no hard coding)
-            $tableName = $this->getEntityManager()->getClassMetadata(User::class)->getTableName();
-
-            $sql = <<<SQL
-                SELECT "$tableName".id
-                FROM "$tableName"
-                WHERE %s
-            SQL;
-
-            $condition = implode(' OR ', array_map(function(string $value) use ($tableName) {
-                return sprintf('"%s".roles::jsonb @> \'%s\'::jsonb', $tableName, json_encode([$value]));
-            }, $roles));
-            
-            $nativeSQL = sprintf($sql, $condition);
-            $result = $this->getEntityManager()->getConnection()->executeQuery($nativeSQL);
-
-            return $this->findBy(['id' => array_map(fn (array $user) => $user['id'], $result->fetchAllAssociative())]);
-        });
+        $expression = (new DoctrineExpression($this->getEntityManager()))
+            ->defineQuery(DriverEnum::PDO_MYSQL, fn () => $this->mysqlExpression($roles)) // When using MySQL
+            ->defineQuery(DriverEnum::PDO_PGSQL, fn () => $this->pgsqlExpression($roles)) // When using PostgreSQL
+        ;
 
         return $expression->getCompatibleResult();
     }
 
+    /**
+     * Expression used if database engine is MYSQLI
+     *
+     * @param array $roles
+     * @return array
+     */
+    private function mysqlExpression(array $roles): array 
+    {
+        $condition = implode(' OR ', array_map(
+            fn (int $key, string $value) => sprintf('entity.roles LIKE :%s%d', $value, $key), 
+            array_keys($roles), 
+            $roles
+        ));
+
+        $builder = $this->createQueryBuilder('entity')->where($condition);
+
+        foreach ($roles as $key => $role) {
+            $builder->setParameter(sprintf('%s%d', $role, $key), str_replace(':role', $role, '%":role"%'));
+        }
+
+        return $builder->getQuery()->getResult();
+    }
+
+    /**
+     * Expression used if database engine is PostgreSQL
+     *
+     * @param array $roles
+     * @return array
+     */
+    private function pgsqlExpression(array $roles): array 
+    {
+        // Get the table name from the entity's metadata
+        $tableName = $this->getEntityManager()->getClassMetadata(User::class)->getTableName();
+
+        $sql = <<<SQL
+            SELECT "$tableName".id
+            FROM "$tableName"
+            WHERE %s
+        SQL;
+
+        $condition = implode(' OR ', array_map(function (string $value) use ($tableName) {
+            return sprintf(
+                '"%s".roles::jsonb @> \'%s\'::jsonb', 
+                $tableName, 
+                json_encode([$value])
+            );
+        }, $roles));
+
+        $nativeSQL = sprintf($sql, $condition);
+        $result = $this->getEntityManager()->getConnection()->executeQuery($nativeSQL);
+
+        return $this->findBy([
+            'id' => array_map(
+                fn (array $user) => $user['id'], 
+                $result->fetchAllAssociative()
+            )
+        ]);
+    }
 }
 ```
 
