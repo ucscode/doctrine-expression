@@ -175,11 +175,15 @@ class UserRepository extends ServiceEntityRepository
      */
     public function findByRoles(string|array $roles): array
     {
-        $roles = array_unique(array_values(is_array($roles) ? $roles : [$roles]));
-
-        $expression = (new DoctrineExpression($this->getEntityManager()))
-            ->defineQuery(DriverEnum::PDO_MYSQL, fn () => $this->mysqlExpression($roles)) // When using MySQL
-            ->defineQuery(DriverEnum::PDO_PGSQL, fn () => $this->pgsqlExpression($roles)) // When using PostgreSQL
+        $expression = new Expression($this->getEntityManager(), [
+            'roles' => array_unique(array_values(
+                is_array($roles) ? $roles : [$roles]
+            )),
+        ]);
+        
+        $expression
+            ->defineQuery(DriverEnum::PDO_MYSQL, fn ($expr) => $this->mysqlExpression($expr)) // When using MySQL
+            ->defineQuery(DriverEnum::PDO_PGSQL, fn ($expr) => $this->pgsqlExpression($expr)) // When using PostgreSQL
         ;
 
         return $expression->getCompatibleResult();
@@ -191,11 +195,14 @@ class UserRepository extends ServiceEntityRepository
      * @param array $roles
      * @return array
      */
-    private function mysqlExpression(array $roles): array 
+    private function mysqlExpression(Expression $expr): array
     {
+        /** @var array $roles */
+        $roles = $expr->get('roles');
+
         $condition = implode(' OR ', array_map(
-            fn (int $key, string $value) => sprintf('entity.roles LIKE :%s%d', $value, $key), 
-            array_keys($roles), 
+            fn (int $key, string $value) => sprintf('entity.roles LIKE :%s%d', $value, $key),
+            array_keys($roles),
             $roles
         ));
 
@@ -214,8 +221,11 @@ class UserRepository extends ServiceEntityRepository
      * @param array $roles
      * @return array
      */
-    private function pgsqlExpression(array $roles): array 
+    private function pgsqlExpression(Expression $expr): array
     {
+        /** @var array $roles */
+        $roles = $expr->get('roles');
+
         // Get the table name from the entity's metadata
         $tableName = $this->getEntityManager()->getClassMetadata(User::class)->getTableName();
 
@@ -227,8 +237,8 @@ class UserRepository extends ServiceEntityRepository
 
         $condition = implode(' OR ', array_map(function (string $value) use ($tableName) {
             return sprintf(
-                '"%s".roles::jsonb @> \'%s\'::jsonb', 
-                $tableName, 
+                '"%s".roles::jsonb @> \'%s\'::jsonb',
+                $tableName,
                 json_encode([$value])
             );
         }, $roles));
@@ -238,7 +248,7 @@ class UserRepository extends ServiceEntityRepository
 
         return $this->findBy([
             'id' => array_map(
-                fn (array $user) => $user['id'], 
+                fn (array $user) => $user['id'],
                 $result->fetchAllAssociative()
             )
         ]);
@@ -254,7 +264,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Contributing
 
-Contributions are welcome!
+Contributions are welcome! Fork and send a pull request
 
 ## Acknowledgments
 
