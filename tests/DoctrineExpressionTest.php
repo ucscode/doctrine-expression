@@ -36,8 +36,28 @@ class DoctrineExpressionTest extends TestCase
         $this->configureDoctrineExpression($expressionSqlite);
 
         $this->assertSame(DriverEnum::PDO_SQLITE, $expressionSqlite->getCompatibleResult());
-
         $this->assertTrue($expressionMysql->getDriverEnum() === DriverEnum::PDO_MYSQL);
+    }
+
+    public function testContainerItems(): void
+    {
+        $entityManagerPostgres = $this->createEntityManagerMockeryFor(new PostgreSQL120Platform());
+        $entityManagerPostgres = new DoctrineExpression($entityManagerPostgres, [
+            'key.1' => DriverEnum::PDO_PGSQL,
+        ]);
+        $entityManagerPostgres->set('key.2', DriverEnum::PDO_MYSQL->value);
+
+        $this->assertTrue($entityManagerPostgres->has('key.1'));
+        $this->assertTrue($entityManagerPostgres->has('key.2'));
+        $this->assertSame($entityManagerPostgres->get('key.1'), DriverEnum::PDO_PGSQL);
+        $this->assertSame($entityManagerPostgres->get('key.2'), DriverEnum::PDO_MYSQL->value);
+
+        $entityManagerPostgres->remove('key.1');
+
+        $this->assertFalse($entityManagerPostgres->has('key.1'));
+        $this->expectException(\InvalidArgumentException::class);
+
+        $entityManagerPostgres->get('key.1');
     }
 
     /**

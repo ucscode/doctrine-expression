@@ -20,11 +20,25 @@ use Doctrine\DBAL\Exception;
  */
 class DoctrineExpression
 {
-    private array $queries = [];
+    /**
+     * The queries for different db-engines
+     *
+     * @var array<string, mixed>
+     */
+    protected array $queries = [];
 
-    public function __construct(protected EntityManagerInterface $entityManager)
+    /**
+     * Random values to use for simplified querying
+     *
+     * @var array<string, mixed>
+     */
+    protected array $container = [];
+
+    public function __construct(protected EntityManagerInterface $entityManager, array $container = [])
     {
-        // $this->entityManager = $entityManager;
+        foreach ($container as $key => $value) {
+            $this->set($key, $value);
+        }
     }
 
     /**
@@ -38,11 +52,66 @@ class DoctrineExpression
     }
 
     /**
+     * Sets a value in the container.
+     *
+     * @param string $name  The key name.
+     * @param mixed  $value The value to store.
+     * @return static
+     */
+    public function set(string $name, mixed $value): static
+    {
+        $this->container[$name] = $value;
+
+        return $this;
+    }
+
+    /**
+     * Retrieves a value from the container.
+     *
+     * @param string $name The key name.
+     * @return mixed The stored value.
+     * @throws \InvalidArgumentException If the key does not exist.
+     */
+    public function get(string $name): mixed
+    {
+        if (!$this->has($name)) {
+            throw new \InvalidArgumentException("The key '{$name}' does not exist in the container.");
+        }
+
+        return $this->container[$name];
+    }
+
+    /**
+     * Checks if a key exists in the container.
+     *
+     * @param string $name The key name.
+     * @return bool
+     */
+    public function has(string $name): bool
+    {
+        return array_key_exists($name, $this->container);
+    }
+
+    /**
+     * Removes a key from the container if it exists.
+     *
+     * @param string $name The key name.
+     * @return static
+     */
+    public function remove(string $name): static
+    {
+        if ($this->has($name)) {
+            unset($this->container[$name]);
+        }
+
+        return $this;
+    }
+
+    /**
      * Define query or expression logic for different drivers.
      *
      * @param DriverEnum $driver The enum of the database driver
      * @param callable $callback The callback to execute for the driver (e.g., complex query logic)
-     *
      * @return static
      */
     public function defineQuery(DriverEnum $driver, callable $callback): static
@@ -76,7 +145,7 @@ class DoctrineExpression
         // Get the current database driver
         $connection = $this->entityManager->getConnection();
 
-        foreach ($this->queries as $platformFqcn => $callback) {
+        foreach (array_keys($this->queries) as $platformFqcn) {
             if (is_a($connection->getDatabasePlatform(), $platformFqcn)) {
                 $driverEnum = $this->getDriverEnumByPlatformFqcn($platformFqcn);
 
@@ -109,13 +178,9 @@ class DoctrineExpression
      * Returns an enumerator designated to the platform passed as argument
      *
      * @param string $platformFqcn  A valid database platform (FQCN) defined by doctrine which is a subclass of AbstractPlatform
-     *
      * @return DriverEnum
-     *
      * @throws \InvalidArgumentException If the database platform does not exist
-     *
      * @see \Doctrine\DBAL\Platforms\AbstractPlatform
-     *
      * @internal
      */
     protected function getDriverEnumByPlatformFqcn(string $platformFqcn): DriverEnum
