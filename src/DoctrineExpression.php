@@ -24,7 +24,7 @@ class DoctrineExpression
 
     public function __construct(protected EntityManagerInterface $entityManager)
     {
-        $this->entityManager = $entityManager;
+        // $this->entityManager = $entityManager;
     }
 
     /**
@@ -62,9 +62,7 @@ class DoctrineExpression
     {
         $callback = $this->queries[$driver->value] ?? null;
 
-        return is_callable($callback)
-            ? call_user_func($callback, $this->entityManager, $this)
-            : null;
+        return is_callable($callback) ? call_user_func($callback, $this->entityManager, $this) : null;
     }
 
     /**
