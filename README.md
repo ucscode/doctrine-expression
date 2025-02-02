@@ -27,7 +27,7 @@
 
 ## Installation
 
-To install `DoctrineExpression`, run the following command in your terminal:
+To install `Doctrine\Expression`, run the following command in your terminal:
 
 ```bash
 composer require ucscode/doctrine-expression
@@ -46,14 +46,10 @@ DATABASE_URL="mysql://app:!ChangeMe!@127.0.0.1:3306/app"
 You might have a query that leverages JSON capabilities specific to MySQL:
 
 ```php
-$queryBuilder = $entityManager->createQueryBuilder();
-
-$result = $queryBuilder->select('u')
-    ->from('App\Entity\User', 'u')
+$result = $queryBuilder
     ->where('JSON_CONTAINS(u.roles, :roles) = 1')
     ->setParameter('roles', json_encode('ROLE_USER'))
-    ->getQuery()
-    ->getResult();
+;
 ```
 
 This query works well with MySQL. However, if you decide to switch to PostgreSQL, you might change your `.env` configuration to:
@@ -67,43 +63,43 @@ DATABASE_URL="postgresql://app:!ChangeMe!@127.0.0.1:5432/app"
 Switching to PostgreSQL requires some modifications due to syntax differences. For example, PostgreSQL handles JSON operations differently:
 
 ```php
-$queryBuilder = $entityManager->createQueryBuilder();
-
-$result = $queryBuilder->select('u')
-    ->from('App\Entity\User', 'u')
+$result = $queryBuilder
     ->where('u.roles @> :role')
     ->setParameter('role', json_encode(['ROLE_USER']))
-    ->getQuery()
-    ->getResult();
+;
 ```
 
 ### Leveraging DoctrineExpression
 
-Instead of rewriting queries for each database driver, you can utilize `DoctrineExpression` to manage this complexity efficiently.
+Instead of rewriting queries for each database driver, you can utilize `Doctrine\Expression` to manage this complexity efficiently.
 
 #### Example Usage:
 
 ```php
-use Ucscode\DoctrineExpression\DoctrineExpression;
-use Ucscode\DoctrineExpression\DriverEnum;
+use Ucscode\Doctrine\Expression\Expression;
+use Ucscode\Doctrine\Expression\DriverEnum;
 
-// Initialize the DoctrineExpression with the EntityManager
-$expression = new DoctrineExpression($entityManager);
+// Initialize the Doctrine\Expression with the EntityManager
+$expression = new Expression($entityManager);
 
 // Define the MySQL query
-$expression->defineQuery(DriverEnum::PDO_MYSQL, function($entityManager) {
-    return $entityManager->createQueryBuilder()
-        ->select('u')
-        ->from('App\Entity\User', 'u')
-        ->where('JSON_CONTAINS(u.roles, :roles) = 1');
+$expression->defineQuery(DriverEnum::PDO_MYSQL, function(Expression $expr) {
+    return $expr->getEntityManager()
+        ->createQueryBuilder()
+            ->select('u')
+            ->from('App\Entity\User', 'u')
+            ->where('JSON_CONTAINS(u.roles, :roles) = 1')
+    ;
 });
 
 // Define the PostgreSQL query
-$expression->defineQuery(DriverEnum::PDO_PGSQL, function($entityManager) {
-    return $entityManager->createQueryBuilder();
-        ->select('u')
-        ->from('App\Entity\User', 'u')
-        ->where('u.roles @> :roles');
+$expression->defineQuery(DriverEnum::PDO_PGSQL, function(Expression $expr) {
+    return $expr->getEntityManger()
+        ->createQueryBuilder();
+            ->select('u')
+            ->from('App\Entity\User', 'u')
+            ->where('u.roles @> :roles')
+    ;
 });
 
 // Fetch the compatible query builder based on the current database platform
@@ -115,8 +111,31 @@ $result = $expression->getCompatibleResult()
 
 The `getCompatibleResult()` method checks which platform is active (e.g., MySQL or PostgreSQL) and selects the corresponding query that was previously defined using `defineQuery()`.
 
+### Providing extra Parameters to the query
 
-#### @ V1.1
+You might want a set of data to be available when defining your query in a closure. For that, you can pass an array with the parameter as second argument of the `Doctrine\Expression` or you can call the `Doctrine\Expression::set()` method
+
+#### Example:
+
+```php
+use Ucscode\Doctrine\Expression\Expression;
+use Ucscode\Doctrine\Expression\DriverEnum;
+
+// setting with __construct() argument
+$expression = new Expression($entityManager, [
+    'amount' => 30000,
+    'roles' => ['ROLE_ADMIN', 'ROLE_USER'],
+    'entity' => new stdClass(),
+])
+
+// using the setter
+$expression->set('dev.name', 'Ucscode');
+
+$expression->defineQuery(DriverEnum::PDO_PGSQL, function(Expression $expr) {
+    $expr->get('dev.name'); // Ucscode
+    $expr->get('entity'); // stdClass instance
+});
+```
 
 For drivers that might use the same syntax, the `getDefinedQuery()` can be used to eliminate the need to write repetitive patterns. 
 
@@ -128,13 +147,22 @@ $expression->defineQuery(DriverEnum::PDO_SQLITE, function($em, $self) {
 
 ### Conclusion
 
-By using `DoctrineExpression`, you can maintain a clean and consistent codebase while easily adapting to changes in database platforms. This library not only saves time but also enhances collaboration among developers familiar with different SQL dialects.
+By using `Doctrine\Expression`, you can maintain a clean and consistent codebase while easily adapting to changes in database platforms. This library not only saves time but also enhances collaboration among developers familiar with different SQL dialects.
 
 ----
 
 ### Helpful Snippet for Common Use Case
 
-> How to find users by one or more roles in Symfony using `DoctrineExpression`
+How to find users by one or more roles in Symfony using `Doctrine\Expression`
+
+##### Note:
+
+You can handle PostgreSQL JSON/JSONB using libraries like one of the following:
+
+- [https://github.com/martin-georgiev/postgresql-for-doctrine](https://github.com/martin-georgiev/postgresql-for-doctrine)
+- [https://github.com/ScientaNL/DoctrineJsonFunctions](https://github.com/ScientaNL/DoctrineJsonFunctions)
+
+The snippet below does not employ any external libraries and works without doctrine extension dependencies but only for this simple case.
 
 ```php
 class UserRepository extends ServiceEntityRepository

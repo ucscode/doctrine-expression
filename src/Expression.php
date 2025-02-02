@@ -1,12 +1,12 @@
 <?php
 
-namespace Ucscode\DoctrineExpression;
+namespace Ucscode\Doctrine\Expression;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Doctrine\DBAL\Exception;
 
 /**
- * The DoctrineExpression class provides an abstraction layer for executing driver-specific queries
+ * The Doctrine Expression class provides an abstraction layer for executing driver-specific queries
  * within a Doctrine ORM setup.
  *
  * This allows for defining multiple query expressions tailored to different database
@@ -16,9 +16,9 @@ use Doctrine\DBAL\Exception;
  * This class is particularly useful in applications where database engines might change, or where
  * cross-database compatibility is necessary, avoiding SQL errors by selecting syntax-specific queries.
  *
- * @author Uchenna Ajah (Ucscode) <uche23mail@gmail.com>
+ * @author Uchenna Ajah<uche23mail@gmail.com>
  */
-class DoctrineExpression
+class Expression
 {
     /**
      * The queries for different db-engines
@@ -131,7 +131,7 @@ class DoctrineExpression
     {
         $callback = $this->queries[$driver->value] ?? null;
 
-        return is_callable($callback) ? call_user_func($callback, $this->entityManager, $this) : null;
+        return is_callable($callback) ? call_user_func($callback, $this) : null;
     }
 
     /**

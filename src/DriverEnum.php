@@ -1,6 +1,6 @@
 <?php
 
-namespace Ucscode\DoctrineExpression;
+namespace Ucscode\Doctrine\Expression;
 
 use Doctrine\DBAL\Platforms\MySQLPlatform;
 use Doctrine\DBAL\Platforms\OraclePlatform;
@@ -12,7 +12,7 @@ use Doctrine\DBAL\Platforms\SQLServerPlatform;
  * Enum representing the various database driver platforms supported by Doctrine.
  * This enum maps each driver to its corresponding Doctrine platform class.
  *
- * @author Uchenna Ajah (Ucscode) <uche23mail@gmail.com>
+ * @author Uchenna Ajah<uche23mail@gmail.com>
  */
 enum DriverEnum: string
 {

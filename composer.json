@@ -5,8 +5,8 @@
     "license": "MIT",
     "autoload": {
         "psr-4": {
-            "Ucscode\\DoctrineExpression\\": "src/",
-            "Ucscode\\Tests\\DoctrineExpression\\": "tests/"
+            "Ucscode\\Doctrine\\Expression\\": "src/",
+            "Ucscode\\Tests\\Doctrine\\Expression\\": "tests/"
         }
     },
     "require": {

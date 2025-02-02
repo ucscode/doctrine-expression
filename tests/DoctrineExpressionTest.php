@@ -1,6 +1,6 @@
 <?php
 
-namespace Ucscode\Tests\DoctrineExpression;
+namespace Ucscode\Tests\Doctrine\Expression;
 
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\Platforms\AbstractPlatform;
@@ -9,8 +9,8 @@ use Doctrine\DBAL\Platforms\PostgreSQL120Platform;
 use Doctrine\DBAL\Platforms\SqlitePlatform;
 use Doctrine\ORM\EntityManagerInterface;
 use PHPUnit\Framework\TestCase;
-use Ucscode\DoctrineExpression\DoctrineExpression;
-use Ucscode\DoctrineExpression\DriverEnum;
+use Ucscode\Doctrine\Expression\Expression;
+use Ucscode\Doctrine\Expression\DriverEnum;
 
 class DoctrineExpressionTest extends TestCase
 {
@@ -18,21 +18,21 @@ class DoctrineExpressionTest extends TestCase
     {
         // Test entity manager using pdo_pgsql driver
         $entityManagerPostgres = $this->createEntityManagerMockeryFor(new PostgreSQL120Platform());
-        $expressionPostgres = new DoctrineExpression($entityManagerPostgres);
+        $expressionPostgres = new Expression($entityManagerPostgres);
         $this->configureDoctrineExpression($expressionPostgres);
 
         $this->assertSame(DriverEnum::PDO_PGSQL, $expressionPostgres->getCompatibleResult());
 
         // Test entity manager using pdo_mysql driver
         $entityManagerMysql = $this->createEntityManagerMockeryFor(new MySQLPlatform());
-        $expressionMysql = new DoctrineExpression($entityManagerMysql);
+        $expressionMysql = new Expression($entityManagerMysql);
         $this->configureDoctrineExpression($expressionMysql);
 
         $this->assertSame(DriverEnum::PDO_MYSQL, $expressionMysql->getCompatibleResult());
 
         // Test entity manager using pdo_sqlite driver
         $entityManagerSqlite = $this->createEntityManagerMockeryFor(new SqlitePlatform());
-        $expressionSqlite = new DoctrineExpression($entityManagerSqlite);
+        $expressionSqlite = new Expression($entityManagerSqlite);
         $this->configureDoctrineExpression($expressionSqlite);
 
         $this->assertSame(DriverEnum::PDO_SQLITE, $expressionSqlite->getCompatibleResult());
@@ -42,7 +42,7 @@ class DoctrineExpressionTest extends TestCase
     public function testContainerItems(): void
     {
         $entityManagerPostgres = $this->createEntityManagerMockeryFor(new PostgreSQL120Platform());
-        $entityManagerPostgres = new DoctrineExpression($entityManagerPostgres, [
+        $entityManagerPostgres = new Expression($entityManagerPostgres, [
             'key.1' => DriverEnum::PDO_PGSQL,
         ]);
         $entityManagerPostgres->set('key.2', DriverEnum::PDO_MYSQL->value);
@@ -88,13 +88,13 @@ class DoctrineExpressionTest extends TestCase
     }
 
     /**
-     * @param DoctrineExpression $expression
+     * @param Expression $expression
      * @return void
      */
-    protected function configureDoctrineExpression(DoctrineExpression $expression): void
+    protected function configureDoctrineExpression(Expression $expression): void
     {
         /*
-         * In real life, each define query (callable) would most likely return a doctrine result.
+         * In real projects, each define query (callable) would most likely return a doctrine result.
          * But for this test, we only care about which definition will be selected by the compactibility checker
          */
         $expression->defineQuery(DriverEnum::PDO_MYSQL, function() {
