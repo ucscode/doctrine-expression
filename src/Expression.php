@@ -138,7 +138,7 @@ class Expression
      * Executes and returns the result of the query compatible with the current driver.
      *
      * @return mixed The result of the query
-     * @throws Exception if there is no defined query for the current driver
+     * @throws \LogicException if there is no defined query for the current driver
      */
     public function getCompatibleResult(): mixed
     {
@@ -153,7 +153,7 @@ class Expression
             }
         }
 
-        return null;
+        throw new \LogicException('No query defined for the current driver');
     }
 
     /**
